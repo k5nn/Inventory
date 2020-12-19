@@ -1,0 +1,21 @@
+version : '3'
+services :
+  web :
+    image : inventory_1.0
+    ports :
+      - "8000:8080"
+    entrypoint : "npm start ./index.js"
+    container_name : inventory_app
+  mongo :
+    image : mongo:3.6.3
+    ports :
+      - "27017:27017"
+    volumes :
+      - "~kennedy/Desktop/mongo_deploy/inventory_hapi/collections/:/data/db"
+      - "~kennedy/Desktop/mongo_deploy/inventory_hapi/logs/mongod.log:/data/logs/mongod.log"
+    entrypoint : "mongod --bind_ip_all"
+    container_name : inventory_db
+
+# network :
+#   web_net :
+
