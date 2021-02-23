@@ -8,7 +8,6 @@ const nullable_keys = [ "Warning" , "Formula" , "Freight" ]
 
 // TODO : session
 // TODO : remote access
-// TODO : deduct_item minus functionality
 
 // DOM Manip
 	const error_message = ( node , message , timeout ) => {
@@ -128,6 +127,7 @@ const nullable_keys = [ "Warning" , "Formula" , "Freight" ]
 										${json_data.Warning}/${json_data.Retail}/
 										${json_data.Wholesale}/${json_data.Bought}/
 										${sanitized_formula}/${json_data.Freight}`
+
 			method = "PUT"
 		} else if ( source === "add_new_category_items" ) {
 			let sanitized_name = json_data.Name.replace( /\//g , "]" )
@@ -953,7 +953,7 @@ let results = new Reef( '#form' , {
 									<th>Remain</th>
 									<th>Warning</th>
 									<th>Unit Price</th>
-									<th>Plus/Minus</th>
+									<th>Plus/Less</th>
 									<th>Freight</th>
 									<th>Capital</th>
 									<th>Retail</th>
@@ -994,7 +994,7 @@ let results = new Reef( '#form' , {
 
 									let capital = item.Bought
 
-									node += `<td data-original=${(item.Bought).toFixed(2)} id="baseval_${i}">${(item.Bought).toFixed(2)}</td>`
+									node += `<td data-original=${(Number(item.Bought)).toFixed(2)} id="baseval_${i}">${(Number(item.Bought)).toFixed(2)}</td>`
 
 									if ( item.Formula === undefined || item.Formula == "NULL_F13LD" || 
 										 item.Formula == "UNSET_F13LD" || item.Formula == null || 
@@ -1015,14 +1015,14 @@ let results = new Reef( '#form' , {
 									} else {
 										capital += Number(item.Freight)
 
-										node += `<td data-original=${(item.Freight).toFixed(2)}>${(item.Freight).toFixed(2)}</td>`
+										node += `<td data-original=${(Number(item.Freight)).toFixed(2)}>${(Number(item.Freight)).toFixed(2)}</td>`
 									}
 
 
 									node += `<td data-original=${capital.toFixed(2)} id="capital_${i}">${capital.toFixed(2)}</td>`
 
-								node += `<td data-original=${(item.Retail).toFixed(2)}>${(item.Retail).toFixed(2)}</td>
-										<td data-original=${(item.Wholesale).toFixed(2)}>${(item.Wholesale).toFixed(2)}</td>
+								node += `<td data-original=${(Number(item.Retail)).toFixed(2)}>${(Number(item.Retail)).toFixed(2)}</td>
+										<td data-original=${(Number(item.Wholesale)).toFixed(2)}>${(Number(item.Wholesale)).toFixed(2)}</td>
 										`
 								} else {
 									node += `
@@ -1045,7 +1045,7 @@ let results = new Reef( '#form' , {
 										<td><input type="number" min="0" step="1" id="add_item_qty" placeholder="0"></td>
 										<td><input type="number" min="0" step="1" id="add_item_warning" placeholder="0"></td>
 										<td><input type="number" min="0" step="any" id="add_item_bought" placeholder="0"></td>
-										<td><input type="text" id="add_item_formula" placeholder="Plus/Minus"></td>
+										<td><input type="text" id="add_item_formula" placeholder="Plus/Less"></td>
 										<td><input type="number" min="0" step="any" id="add_item_freight" placeholder="0"></td>
 										<td id="add_item_capital">0</td>
 										<td><input type="number" min="0" step="any" id="add_item_retail" placeholder="0"></td>
@@ -1068,7 +1068,7 @@ let results = new Reef( '#form' , {
 								<th>Remain</th>
 								<th>Warning</th>
 								<th>Unit Price</th>
-								<th>Plus/Minus</th>
+								<th>Plus/Less</th>
 								<th>Freight</th>
 								<th>Capital</th>
 								<th>Retail</th>
@@ -1190,7 +1190,7 @@ let results = new Reef( '#form' , {
 									 <td><input type="number" min="1" step="1" placeholder="0" id="add_new_category_remain"></td>
 									 <td><input type="number" min="1" step="1" placeholder="0" id="add_new_category_warning"></td>
 									 <td><input type="number" min="1" step="any" placeholder="0" id="add_new_category_bought"></td>
-									 <td><input type="text" placeholder="Plus/Minus" id="add_new_category_formula"></td>
+									 <td><input type="text" placeholder="Plus/Less" id="add_new_category_formula"></td>
 									 <td><input type="number" min="1" step="any" placeholder="0" id="add_new_category_freight"></td>
 									 <td id="add_new_category_capital">0</td>
 									 <td><input type="number" min="1" step="any" placeholder="0" id="add_new_category_retail"></td>
@@ -1447,8 +1447,6 @@ let results = new Reef( '#form' , {
 
 	}
 })
-
-Reef.debug( true );
 
 app.render();
 
@@ -1831,8 +1829,6 @@ document.addEventListener( 'change' , ( event ) => {
 	} else if ( changed.className == "new_category_freight" ) {
 		store.do( 'edit_new_category_items' , changed.dataset.cnt , "Freight" , changed.value )
 	}
-
-	//TODO : cater to optional values newtx
 })
 
 document.addEventListener( 'click' , ( event ) => {
@@ -1868,6 +1864,7 @@ document.addEventListener( 'click' , ( event ) => {
 		new_retail_box = document.querySelector( "#add_new_category_retail" )
 		new_wholesale_box = document.querySelector( "#add_new_category_wholesale" )
 		new_unit_box = document.querySelector( "#add_new_category_unit" )
+		category_box = document.querySelector( "#categories" )
 	} else if ( router.current.id == "accept" ) {
 		error_node = document.querySelector( "#accept_error" )
 		accept_button = document.querySelector( "#add_item" )
@@ -2226,12 +2223,19 @@ document.addEventListener( 'click' , ( event ) => {
 
 					let cell = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[i]
 
-					if ( i == 0 || i == 1 || i==6 || i == 7 || i == 8 ) {
+					if ( i == 0 || i == 1 || i == 8 ) {
 						continue
-					} else if ( i == 2 ) {
-						cell.innerHTML = `<input type="text" placeholder="${cell.dataset.original}">`
-					} else if ( i == 5 || i == 9 || i == 10 ) {
-						cell.innerHTML = `<input type="number" placeholder="${cell.dataset.original}" min="1" step="any">`
+					} else if ( i == 2 || i == 6 ) {
+						// cell.innerHTML = `<input type="text" placeholder="${cell.dataset.original}">`
+						cell.innerHTML = ( i == 6 ) 
+							? `<input id="change_formula" data-cnt="${Number( clicked.dataset.cnt )}" type="text" placeholder="${cell.dataset.original}">`
+							: `<input type="text" placeholder="${cell.dataset.original}">`
+
+					} else if ( i == 5 || i == 7 || i == 9 || i == 10 ) {
+						// cell.innerHTML = `<input type="number" placeholder="${cell.dataset.original}" min="1" step="any">`
+						cell.innerHTML = ( i == 7 )
+							? `<input id="change_freight" data-cnt="${Number( clicked.dataset.cnt )}" type="number" placeholder="${cell.dataset.original}" min="1" step="any">`
+							: `<input type="number" placeholder="${cell.dataset.original}" min="1" step="any">`;
 					} else {
 						cell.innerHTML = `<input type="number" placeholder="${cell.dataset.original}" min="1" step="1">`
 					}
@@ -2257,10 +2261,10 @@ document.addEventListener( 'click' , ( event ) => {
 					let cell = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[i]
 					let cell_child = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[i].childNodes[0]
 
-					if ( i == 0 || i == 1 ) {
+					if ( i == 0 || i == 1  ) {
 						continue
 					} else if ( i == 6 || i == 7 ) {
-						update_item[ `${update_keys[i - 1]}` ] = cell.innerHTML
+						update_item[ `${update_keys[i - 1]}` ] = cell_child.value
 					} else if ( update_keys[i - 1] == "Retail" || update_keys[i - 1] == "Wholesale" ) {
 						let special_cell = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[ i + 1 ]
 						let special_cell_child = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[i + 1].childNodes[0]
@@ -2322,15 +2326,25 @@ document.addEventListener( 'click' , ( event ) => {
 
 							let cell = item_table.rows[ Number( clicked.dataset.cnt ) + 1 ].cells[i]
 
-							if ( i == 0 || i == 1 || i==6 || i == 7 || i == 8 ) {
+							if ( i == 0 || i == 1 || i == 8 ) {
 								continue
-							} else if ( i == 2 ) {
-								cell.innerHTML = `<input type="text" 
-													placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}">`
-							} else if ( i == 5 || i == 9 || i == 10 ) {
-								cell.innerHTML = `<input type="number" 
-													placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}"
-													min="1" step="any">`
+							} else if ( i == 2 || i == 6 ) {
+								// cell.innerHTML = `<input type="text" 
+								// 					placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}">`
+
+								cell.innerHTML = ( i == 2 ) 
+									? `<input type="text" placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}">`
+									: `<input id="change_formula" type="text" placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}">`;
+
+
+							} else if ( i == 5 || i == 7 || i == 9 || i == 10 ) {
+								// cell.innerHTML = `<input type="number" 
+								// 					placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}"
+								// 					min="1" step="any">`
+
+								cell.innerHTML = ( i == 7 ) 
+									? `<input id="change_freight" type="number" placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}" min="1" step="any">`
+									: `<input type="number" placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}" min="1" step="any">`;
 							} else {
 								cell.innerHTML = `<input type="number" 
 													placeholder="${store.get( 'get_category_items' )[ clicked.dataset.cnt ][ arr_keys[i] ]}"
@@ -2621,7 +2635,7 @@ document.addEventListener( 'click' , ( event ) => {
 					// error_message( error_node , `Item to add Already in list` , 1500 )
 					trigger_add = false;
 					new_name_box.placeholder = "New Item Here"
-					new_formula_box.placeholder = "Plus/Minus"
+					new_formula_box.placeholder = "Plus/Less"
 					new_qty_box.placeholder = new_warning_box.placeholder = new_retail_box.placeholder = new_wholesale_box.placeholder = 0
 					new_bought_box.placeholder = new_capital_box.innerHTML =0
 					return false;
@@ -2640,12 +2654,11 @@ document.addEventListener( 'click' , ( event ) => {
 		}
 	} else if ( clicked.id == "cancel_add_new_category" ) {
 
-		if ( store.get( 'get_item_categories' ).length == 0 ) {
-			new_category_name.selected = "Choose Category"
-		} else {
-			store.do( 'reset_chosen_category' )
-			store.do( 'reset_new_category_items' )
-		}
+		( store.get( 'get_item_categories' ).length == 0 )
+			? store.do( 'set_chosen_category' , "--New Category--" )
+			: store.do( 'reset_chosen_category' );
+
+		store.do( 'reset_new_category_items' )
 
 	} else if ( clicked.id == "finish_add_new_category" ) {
 		let trigger_add = true
@@ -2773,8 +2786,11 @@ document.addEventListener( 'focusin' , ( event ) => {
 					product = calculate_capital( `${baseval.dataset.original}${formula.value}` )
 					product += Number( current )
 				} else {
-					product += Number(baseval.innerHTML) + Number( current )
+					product += ( baseval.innerText != "" )
+						? Number(baseval.innerHTML) + Number( current )
+						: Number(baseval.dataset.original) + Number( current );
 				}
+
 				capital.innerHTML = product.toFixed(2)
 
 			} else if ( input == "Backspace" ) {
